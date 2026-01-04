@@ -215,13 +215,17 @@ def clear_all():
     st.session_state.unacceptable_antigens = []
 
 def process_bulk_text():
-    text = st.session_state.bulk_input_text
-    lines = text.split('\n')
-    results = []
-    for line in lines:
-        results.extend(parse_input_line(line))
-    add_antigens(results)
-    st.session_state.bulk_input_text = "" # Clear input
+    # Use session_state to get the widget value directly
+    if "bulk_input_text" in st.session_state:
+        text = st.session_state.bulk_input_text
+        if text:
+            lines = text.split('\n')
+            results = []
+            for line in lines:
+                results.extend(parse_input_line(line))
+            add_antigens(results)
+            # Safely clear the input in session state because we are inside a callback
+            st.session_state.bulk_input_text = "" 
 
 def toggle_dr_special(antigen):
     if antigen in st.session_state.unacceptable_antigens:
@@ -257,8 +261,8 @@ with left_col:
             key="bulk_input_text",
             label_visibility="collapsed"
         )
-        if st.button("Process & Add", type="primary"):
-            process_bulk_text()
+        # FIX: Use on_click callback to process text and clear input safely
+        st.button("Process & Add", type="primary", on_click=process_bulk_text)
 
     with tab_grid:
         st.markdown("**Check Special Associations**")
@@ -285,6 +289,7 @@ with left_col:
                         # Reuse parse logic by faking the "Locus: Val" format
                         batch_add.extend(parse_input_line(f"{lid}: {val}"))
                 add_antigens(batch_add)
+                st.rerun() # Force update after form submit
 
     # --- ACTIVE EXCLUSIONS ---
     st.markdown("### Active Exclusions")
